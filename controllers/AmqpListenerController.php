@@ -32,9 +32,11 @@ class AmqpListenerController extends AmqpConsoleController
      */
     public $interpreters = [];
 
+    public $queueName = NULL;
+
     public function actionRun($routingKey = '#', $type = Amqp::TYPE_TOPIC)
     {
-        $this->amqp->listen($this->exchange, $routingKey, [$this, 'callback'], $type);
+        $this->amqp->listen($this->exchange, $routingKey, [$this, 'callback'], $type, $this->queueName);
     }
 
     public function callback(AMQPMessage $msg)
@@ -74,5 +76,7 @@ class AmqpListenerController extends AmqpConsoleController
                 $interpreter::MESSAGE_INFO
             );
         }
+
+        $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
     }
 }

@@ -168,15 +168,22 @@ class Amqp extends Component
      * @param string $routing_key
      * @param callable $callback
      * @param string $type
+     * @param string|NULL $qName
      */
-    public function listen($exchange, $routing_key, $callback, $type = self::TYPE_TOPIC)
+    public function listen($exchange, $routing_key, $callback, $type = self::TYPE_TOPIC, $qName = NULL)
     {
-        list ($queueName) = $this->channel->queue_declare();
+        list ($queueName) = $qName ? $this->channel->queue_declare($qName, false, true, false, false)
+            : $this->channel->queue_declare();
+
+        if ($qName) {
+            $this->channel->basic_qos(null, 1, null);
+        }
+
         if ($type == Amqp::TYPE_DIRECT) {
             $this->channel->exchange_declare($exchange, $type, false, true, false);
         }
         $this->channel->queue_bind($queueName, $exchange, $routing_key);
-        $this->channel->basic_consume($queueName, '', false, true, false, false, $callback);
+        $this->channel->basic_consume($queueName, '', false, false, false, false, $callback);
 
         while (count($this->channel->callbacks)) {
             $this->channel->wait();
